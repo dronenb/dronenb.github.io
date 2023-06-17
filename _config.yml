@@ -23,7 +23,7 @@ title: Ben Dronen # the main title
 tagline: My personal musings and notes about automation, electronics, and live sound # it will display as the sub-title
 
 description: >- # used by seo meta and the atom feed
-  A minimal, responsive and featu
+  My personal musings and notes about automation, electronics, and live sound
 
 # fill in the protocol & hostname for your site, e.g., 'https://o'
 url: "https://www.bendronen.com"
@@ -65,7 +65,7 @@ google_analytics:
 #     light  - Use the light color scheme
 #     dark   - Use the dark color scheme
 #
-theme_mode: # [light|dark]
+theme_mode: dark
 
 # The CDN endpoint for images.
 # Notice that once it is assigned, the CDN url
