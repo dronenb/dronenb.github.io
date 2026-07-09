@@ -1,13 +1,16 @@
-# Bundler cache
-.bundle
-vendor
-Gemfile.lock
+# Hugo cache/output
+.hugo_build.lock
+public
+resources
 
 # Jekyll cache
 .jekyll-cache
 _site
 
-# RubyGems
+# Ruby/Bundler
+.bundle
+vendor
+Gemfile.lock
 *.gem
 
 # NPM dependencies
@@ -16,7 +19,16 @@ package-lock.json
 
 # IDE configurations
 .idea
-.vscode
 
 # Misc
 assets/js/dist
+
+.DS_STORE
+
+# OpenCode runtime data
+.opencode/opencode.db
+.opencode/opencode.db-wal
+.opencode/opencode.db-shm
+
+# Devcontainer generated auth
+.devcontainer/.github-token.env

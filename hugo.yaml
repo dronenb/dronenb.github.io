@@ -1,0 +1,27 @@
+title: "Ben Dronen"
+description: "My personal musings and notes about automation, electronics, and live sound"
+baseURL: "https://www.bendronen.com"
+languageCode: "en-us"
+defaultContentLanguage: "en"
+enableGitInfo: true
+
+params:
+  tagline: My personal musings and notes about automation, electronics, and live sound
+  avatar: /images/avatar.jpg
+
+pagination:
+  pagerSize: 10
+
+outputs:
+  home:
+    - HTML
+    - RSS
+    - JSON
+
+taxonomies:
+  category: categories
+  tag: tags
+
+module:
+  imports:
+    - path: github.com/geekifan/hugo-theme-chirpy

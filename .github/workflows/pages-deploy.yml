@@ -3,13 +3,11 @@ on:
   push:
     branches:
       - main
-      - master
     paths-ignore:
       - .gitignore
       - README.md
       - LICENSE
 
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 permissions:
@@ -17,47 +15,53 @@ permissions:
   pages: write
   id-token: write
 
-# Allow one concurrent deployment
 concurrency:
   group: "pages"
   cancel-in-progress: true
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-
+    runs-on: ubuntu-26.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        # refresh: tag=$(curl -fsSL https://api.github.com/repos/actions/checkout/releases/latest | sed -n 's/.*"tag_name": "\([^"]*\)".*/\1/p'); git ls-remote https://github.com/actions/checkout.git "refs/tags/${tag}" | awk '{print "uses: actions/checkout@" $1}'
         with:
           fetch-depth: 0
-          # submodules: true
-          # If using the 'assets' git submodule from Chirpy Starter, uncomment above
-          # (See: https://github.com/cotes2020/chirpy-starter/tree/main/assets)
 
       - name: Setup Pages
         id: pages
-        uses: actions/configure-pages@v3
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+        # refresh: tag=$(curl -fsSL https://api.github.com/repos/actions/configure-pages/releases/latest | sed -n 's/.*"tag_name": "\([^"]*\)".*/\1/p'); git ls-remote https://github.com/actions/configure-pages.git "refs/tags/${tag}" | awk '{print "uses: actions/configure-pages@" $1}'
 
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
+      - name: Setup Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        # refresh: tag=$(curl -fsSL https://api.github.com/repos/actions/setup-go/releases/latest | sed -n 's/.*"tag_name": "\([^"]*\)".*/\1/p'); git ls-remote https://github.com/actions/setup-go.git "refs/tags/${tag}" | awk '{print "uses: actions/setup-go@" $1}'
         with:
-          ruby-version: 3   # reads from a '.ruby-version' or '.tools-version' file if 'ruby-version' is omitted
-          bundler-cache: true
+          go-version: "1.26.5" # latest: curl -s https://go.dev/VERSION?m=text
+
+      - name: Install Hugo
+        run: |
+          set -eux
+          # latest Hugo: curl -s https://api.github.com/repos/gohugoio/hugo/releases/latest | sed -n 's/.*"tag_name": "\([^"]*\)".*/\1/p'
+          curl -fsSL -o /tmp/hugo_checksums.txt https://github.com/gohugoio/hugo/releases/download/v0.164.0/hugo_0.164.0_checksums.txt
+          grep "hugo_extended_0.164.0_linux-amd64.tar.gz" /tmp/hugo_checksums.txt | awk '{print $1 "  /tmp/hugo.tar.gz"}' > /tmp/hugo.sha256
+          curl -fsSL -o /tmp/hugo.tar.gz https://github.com/gohugoio/hugo/releases/download/v0.164.0/hugo_extended_0.164.0_linux-amd64.tar.gz
+          sha256sum -c /tmp/hugo.sha256
+          tar -xzf /tmp/hugo.tar.gz -C /usr/local/bin hugo
+          hugo version
+
+      - name: Install dependencies
+        run: hugo mod get -u
 
       - name: Build site
-        run: bundle exec jekyll b -d "_site${{ steps.pages.outputs.base_path }}"
-        env:
-          JEKYLL_ENV: "production"
-
-      - name: Test site
-        run: |
-          bundle exec htmlproofer _site --disable-external --check-html --allow_hash_href
+        run: hugo --minify --baseURL "${{ steps.pages.outputs.base_url }}"
 
       - name: Upload site artifact
-        uses: actions/upload-pages-artifact@v1
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        # refresh: tag=$(curl -fsSL https://api.github.com/repos/actions/upload-pages-artifact/releases/latest | sed -n 's/.*"tag_name": "\([^"]*\)".*/\1/p'); git ls-remote https://github.com/actions/upload-pages-artifact.git "refs/tags/${tag}" | awk '{print "uses: actions/upload-pages-artifact@" $1}'
         with:
-          path: "_site${{ steps.pages.outputs.base_path }}"
+          path: "public"
 
   deploy:
     environment:
@@ -68,4 +72,5 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v1
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
+        # refresh: tag=$(curl -fsSL https://api.github.com/repos/actions/deploy-pages/releases/latest | sed -n 's/.*"tag_name": "\([^"]*\)".*/\1/p'); git ls-remote https://github.com/actions/deploy-pages.git "refs/tags/${tag}" | awk '{print "uses: actions/deploy-pages@" $1}'

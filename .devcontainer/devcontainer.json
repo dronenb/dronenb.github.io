@@ -1,0 +1,21 @@
+{
+  "name": "Hugo (pinned theme + opencode)",
+  "build": {
+    "dockerfile": "Containerfile",
+    "context": ".."
+  },
+  "remoteUser": "vscode",
+  "updateRemoteUserUID": true,
+  "initializeCommand": "bash -lc 'token=${GITHUB_TOKEN:-$(gh auth token 2>/dev/null || true)}; mkdir -p .devcontainer; if [ -n \"$token\" ]; then printf \"GITHUB_TOKEN=%s\\n\" \"$token\" > .devcontainer/.github-token.env; else : > .devcontainer/.github-token.env; fi'",
+  "runArgs": [
+    "--env-file",
+    "${localWorkspaceFolder}/.devcontainer/.github-token.env"
+  ],
+  "forwardPorts": [1313],
+  "portsAttributes": {
+    "1313": {
+      "label": "Hugo Preview",
+      "onAutoForward": "notify"
+    }
+  }
+}
