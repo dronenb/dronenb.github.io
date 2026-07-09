@@ -8,20 +8,24 @@ on:
       - README.md
       - LICENSE
 
+  pull_request:
+    branches:
+      - main
+
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: "pages"
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-26.04
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -79,20 +83,25 @@ jobs:
         run: hugo mod get -u
 
       - name: Build site
-        run: hugo --minify --baseURL "${{ steps.pages.outputs.base_url }}"
+        run: hugo --minify --gc --baseURL "${{ steps.pages.outputs.base_url }}"
 
       - name: Upload site artifact
+        if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         # refresh: tag=$(curl -fsSL https://api.github.com/repos/actions/upload-pages-artifact/releases/latest | sed -n 's/.*"tag_name": "\([^"]*\)".*/\1/p'); git ls-remote https://github.com/actions/upload-pages-artifact.git "refs/tags/${tag}" | awk '{print "uses: actions/upload-pages-artifact@" $1}'
         with:
           path: "public"
 
   deploy:
+    if: github.event_name != 'pull_request'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: build
+    permissions:
+      pages: write
+      id-token: write
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
