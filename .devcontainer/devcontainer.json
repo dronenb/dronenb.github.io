@@ -8,9 +8,14 @@
   "updateRemoteUserUID": true,
   "initializeCommand": "bash -lc 'token=${GITHUB_TOKEN:-$(gh auth token 2>/dev/null || true)}; mkdir -p .devcontainer; if [ -n \"$token\" ]; then printf \"GITHUB_TOKEN=%s\\n\" \"$token\" > .devcontainer/.github-token.env; else : > .devcontainer/.github-token.env; fi'",
   "runArgs": [
+    "--privileged",
     "--env-file",
     "${localWorkspaceFolder}/.devcontainer/.github-token.env"
   ],
+  "mounts": [
+    "source=dronenb-github-io-podman-cache,target=/home/vscode/.local/share/containers,type=volume"
+  ],
+  "postCreateCommand": "bash -lc 'source .github/megalinter-image.env && podman pull \"${MEGALINTER_IMAGE}\"'",
   "forwardPorts": [1313],
   "portsAttributes": {
     "1313": {

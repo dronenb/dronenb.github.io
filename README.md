@@ -10,7 +10,7 @@ Run:
 hugo server --bind 0.0.0.0
 ```
 
-## Dev Container
+## Development Container
 
 This repository includes a development container in `.devcontainer/` with Hugo and opencode installed.
 
@@ -25,3 +25,4 @@ The theme is pinned in `go.mod` and resolved through Hugo modules.
 This work is published under [MIT][mit] License.
 
 [chirpy]: https://github.com/geekifan/hugo-theme-chirpy
+[mit]: LICENSE
