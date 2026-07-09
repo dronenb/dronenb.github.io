@@ -1,0 +1,112 @@
+# Pin both tag and digest for deterministic rebuilds.
+# Refresh the base image digest with:
+#   skopeo inspect docker://registry.access.redhat.com/ubi10/ubi-minimal:10.2-1780413072 | sed -n 's/.*"Digest": *"\([^"]*\)".*/\1/p'
+FROM registry.access.redhat.com/ubi10/ubi-minimal:10.2-1780413072@sha256:39c5de8723ad21c6a34e15cfba75f096d6a7191de98481b870b3dba575d65302
+
+ARG HUGO_VERSION=0.164.0 # latest: curl -s https://api.github.com/repos/gohugoio/hugo/releases/latest | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p'
+# SHA256s below are for hugo_extended_${HUGO_VERSION}_linux-{amd64,arm64}.tar.gz.
+# Refresh via: curl -fsSL https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_${HUGO_VERSION}_checksums.txt
+ARG HUGO_SHA256_AMD64=fea17b8c076f950bb2e9f9486667bdaa29422883888d509d63931c73e8a9b3a4
+ARG HUGO_SHA256_ARM64=232d3bc2d1d9510625985ff7c89767598ffea5bc6e5e2882c791313f5a43f723
+ARG GO_VERSION=1.26.5 # latest: curl -s https://go.dev/VERSION?m=text
+# SHA256s below are for go${GO_VERSION}.linux-{amd64,arm64}.tar.gz.
+# Refresh via: curl -s https://go.dev/dl/?mode=json&include=all | jq -r --arg v "go${GO_VERSION}" '.[] | select(.version==$v) | .files[] | select(.os=="linux" and (.arch=="amd64" or .arch=="arm64")) | "\(.arch) \(.sha256)"'
+ARG GO_SHA256_AMD64=5c2c3b16caefa1d968a94c1daca04a7ca301a496d9b086e17ad77bb81393f053
+ARG GO_SHA256_ARM64=fe4789e92b1f33358680864bbe8704289e7bb5fc207d80623c308935bd696d49
+ARG DART_SASS_VERSION=1.101.0 # latest: curl -s https://api.github.com/repos/sass/dart-sass/releases/latest | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p'
+ARG DART_SASS_SHA256_X86_64=13c47fe50f707df6d5c2ea8e612ab3ce3b81e351c31f0ebb43072ca7781ad3da
+ARG DART_SASS_SHA256_ARM64=fe3abb3697d5c835cb5fda9fb899dd1321dc031d75255bacd21917cb897ad944
+ARG OPENCODE_VERSION=1.17.17 # latest: curl -s https://api.github.com/repos/anomalyco/opencode/releases/latest | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | sed 's/^v//'
+# SHA256s below are for opencode-linux-x64.tar.gz and opencode-linux-arm64.tar.gz (asset names use x64, not x86_64).
+# Refresh via: curl -s https://api.github.com/repos/anomalyco/opencode/releases/tags/v${OPENCODE_VERSION} | jq -r '.assets[] | select(.name=="opencode-linux-x64.tar.gz" or .name=="opencode-linux-arm64.tar.gz") | "\(.name) \(.digest)"'
+ARG OPENCODE_SHA256_X86_64=3957e8b9b80867633daf82cba43f17980c8daf71d4d265a40313fb21d5d58fac
+ARG OPENCODE_SHA256_ARM64=5a03cf2abc71cef8c57cd03add3ff55a0c1d6e0d4af4b825efdc503cfce23ab3
+ARG FZF_VERSION=0.74.0 # latest: curl -s https://api.github.com/repos/junegunn/fzf/releases/latest | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | sed 's/^v//'
+ARG FZF_SHA256_X86_64=cf919f05b7581b4c744d764eaa704665d61dd6d3ca785f0df2351281dff60cda
+ARG FZF_SHA256_ARM64=bd9e6165ebdb702215d42368cbb95b8dd70a4e77ee97925adac8c31660e30ef7
+ARG RIPGREP_VERSION=15.1.0 # latest: curl -s https://api.github.com/repos/BurntSushi/ripgrep/releases/latest | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | sed 's/^v//'
+# amd64 asset is musl-based (ripgrep publishes no x86_64-*-gnu build); arm64 asset is gnu-based.
+ARG RIPGREP_SHA256_X86_64=1c9297be4a084eea7ecaedf93eb03d058d6faae29bbc57ecdaf5063921491599
+ARG RIPGREP_SHA256_ARM64=2b661c6ef508e902f388e9098d9c4c5aca72c87b55922d94abdba830b4dc885e
+ARG GH_VERSION=2.96.0 # latest: curl -s https://api.github.com/repos/cli/cli/releases/latest | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | sed 's/^v//'
+ARG GH_SHA256_X86_64=83d5c2ccad5498f58bf6368acb1ab32588cf43ab3a4b1c301bf36328b1c8bd60
+ARG GH_SHA256_ARM64=06f86ec7103d41993b76cd78072f43595c34aaa56506d971d9860e67140bf909
+
+ARG USERNAME=vscode
+ARG USER_UID=1000
+ARG USER_GID=1000
+ARG TARGETARCH
+
+RUN \
+  set -eux && \
+  microdnf --disableplugin=subscription-manager install --assumeyes --nodocs --best --setopt=install_weak_deps=0 \
+    curl-8.12.1-4.el10 \
+    findutils-1:4.10.0-5.el10 \
+    git-2.52.0-1.el10 \
+    gzip-1.13-3.el10 \
+    tar-2:1.35-11.el10 \
+    which-2.21-44.el10_0 \
+    xz-1:5.6.2-4.el10_0 \
+    shadow-utils-2:4.15.0-11.el10 && \
+  microdnf --disableplugin=subscription-manager clean all && \
+  case "${TARGETARCH:-$(uname -m)}" in \
+     amd64|x86_64) \
+       arch=amd64; \
+       go_sha256="${GO_SHA256_AMD64}"; \
+       hugo_asset="hugo_extended_${HUGO_VERSION}_linux-amd64.tar.gz"; hugo_sha256="${HUGO_SHA256_AMD64}"; \
+       dart_sass_asset="dart-sass-${DART_SASS_VERSION}-linux-x64.tar.gz"; dart_sass_sha256="${DART_SASS_SHA256_X86_64}"; \
+       fzf_asset="fzf-${FZF_VERSION}-linux_amd64.tar.gz"; fzf_sha256="${FZF_SHA256_X86_64}"; \
+       rg_dir="ripgrep-${RIPGREP_VERSION}-x86_64-unknown-linux-musl"; rg_sha256="${RIPGREP_SHA256_X86_64}"; \
+       gh_dir="gh_${GH_VERSION}_linux_amd64"; gh_sha256="${GH_SHA256_X86_64}"; \
+       opencode_asset="opencode-linux-x64.tar.gz"; opencode_sha256="${OPENCODE_SHA256_X86_64}" ;; \
+     arm64|aarch64) \
+       arch=arm64; \
+       go_sha256="${GO_SHA256_ARM64}"; \
+       hugo_asset="hugo_extended_${HUGO_VERSION}_linux-arm64.tar.gz"; hugo_sha256="${HUGO_SHA256_ARM64}"; \
+       dart_sass_asset="dart-sass-${DART_SASS_VERSION}-linux-arm64.tar.gz"; dart_sass_sha256="${DART_SASS_SHA256_ARM64}"; \
+       fzf_asset="fzf-${FZF_VERSION}-linux_arm64.tar.gz"; fzf_sha256="${FZF_SHA256_ARM64}"; \
+       rg_dir="ripgrep-${RIPGREP_VERSION}-aarch64-unknown-linux-gnu"; rg_sha256="${RIPGREP_SHA256_ARM64}"; \
+       gh_dir="gh_${GH_VERSION}_linux_arm64"; gh_sha256="${GH_SHA256_ARM64}"; \
+       opencode_asset="opencode-linux-arm64.tar.gz"; opencode_sha256="${OPENCODE_SHA256_ARM64}" ;; \
+    *) echo "Unsupported architecture: ${TARGETARCH:-$(uname -m)}" >&2; exit 1 ;; \
+  esac && \
+  curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-${arch}.tar.gz" -o /tmp/go.tar.gz && \
+  echo "${go_sha256}  /tmp/go.tar.gz" | sha256sum -c - && \
+  tar -xzf /tmp/go.tar.gz -C /usr/local && \
+  ln -sf /usr/local/go/bin/go /usr/local/bin/go && \
+  ln -sf /usr/local/go/bin/gofmt /usr/local/bin/gofmt && \
+   curl -fsSL "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/${hugo_asset}" -o /tmp/hugo.tar.gz && \
+   echo "${hugo_sha256}  /tmp/hugo.tar.gz" | sha256sum -c - && \
+   tar -xzf /tmp/hugo.tar.gz -C /usr/local/bin hugo && \
+    curl -fsSL "https://github.com/sass/dart-sass/releases/download/${DART_SASS_VERSION}/${dart_sass_asset}" -o /tmp/dart-sass.tar.gz && \
+    echo "${dart_sass_sha256}  /tmp/dart-sass.tar.gz" | sha256sum -c - && \
+    tar -xzf /tmp/dart-sass.tar.gz -C /usr/local && \
+    ln -sf /usr/local/dart-sass/sass /usr/local/bin/sass && \
+    chmod 0755 /usr/local/dart-sass/sass /usr/local/dart-sass/src/dart && \
+   curl -fsSL "https://github.com/junegunn/fzf/releases/download/v${FZF_VERSION}/${fzf_asset}" -o /tmp/fzf.tar.gz && \
+  echo "${fzf_sha256}  /tmp/fzf.tar.gz" | sha256sum -c - && \
+  tar -xzf /tmp/fzf.tar.gz -C /usr/local/bin fzf && \
+  chmod 0755 /usr/local/bin/fzf && \
+  curl -fsSL "https://github.com/BurntSushi/ripgrep/releases/download/${RIPGREP_VERSION}/${rg_dir}.tar.gz" -o /tmp/ripgrep.tar.gz && \
+  echo "${rg_sha256}  /tmp/ripgrep.tar.gz" | sha256sum -c - && \
+  tar -xzf /tmp/ripgrep.tar.gz -C /tmp && \
+  install -m 0755 "/tmp/${rg_dir}/rg" /usr/local/bin/rg && \
+  chmod 0755 /usr/local/bin/rg && \
+  curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/${gh_dir}.tar.gz" -o /tmp/gh.tar.gz && \
+  echo "${gh_sha256}  /tmp/gh.tar.gz" | sha256sum -c - && \
+  tar -xzf /tmp/gh.tar.gz -C /tmp && \
+  install -m 0755 "/tmp/${gh_dir}/bin/gh" /usr/local/bin/gh && \
+  chmod 0755 /usr/local/bin/gh && \
+  curl -fsSL "https://github.com/anomalyco/opencode/releases/download/v${OPENCODE_VERSION}/${opencode_asset}" -o /tmp/opencode.tar.gz && \
+  echo "${opencode_sha256}  /tmp/opencode.tar.gz" | sha256sum -c - && \
+  tar -xz -C /usr/local/bin -f /tmp/opencode.tar.gz opencode && \
+  chmod 0755 /usr/local/bin/opencode && \
+  go version && \
+  (opencode --version || opencode version || opencode --help) >/dev/null && \
+  hugo version && \
+  if ! getent group "${USERNAME}" >/dev/null; then groupadd --gid "${USER_GID}" "${USERNAME}"; fi; \
+  if ! id -u "${USERNAME}" >/dev/null 2>&1; then useradd --uid "${USER_UID}" --gid "${USER_GID}" -m "${USERNAME}"; fi; \
+  mkdir -p /workspace && \
+  chown -R "${USERNAME}:${USERNAME}" /workspace
+
+USER ${USERNAME}
