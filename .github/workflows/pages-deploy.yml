@@ -70,9 +70,10 @@ jobs:
           esac
           curl -fsSL "https://github.com/sass/dart-sass/releases/download/1.101.0/${sass_asset}" -o /tmp/dart-sass.tar.gz
           echo "${sass_sha256}  /tmp/dart-sass.tar.gz" | sha256sum -c -
-          tar -xzf /tmp/dart-sass.tar.gz -C /usr/local
-          ln -sf /usr/local/dart-sass/sass /usr/local/bin/sass
-          chmod 0755 /usr/local/dart-sass/sass /usr/local/dart-sass/src/dart
+          rm -rf "${RUNNER_TEMP}/dart-sass"
+          tar -xzf /tmp/dart-sass.tar.gz -C "${RUNNER_TEMP}"
+          chmod 0755 "${RUNNER_TEMP}/dart-sass/sass" "${RUNNER_TEMP}/dart-sass/src/dart"
+          echo "${RUNNER_TEMP}/dart-sass" >> "$GITHUB_PATH"
 
       - name: Install dependencies
         run: hugo mod get -u
