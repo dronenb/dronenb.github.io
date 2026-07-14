@@ -23,6 +23,7 @@ concurrency:
 
 jobs:
   build:
+    name: Build
     runs-on: ubuntu-26.04
     permissions:
       contents: read
@@ -32,6 +33,7 @@ jobs:
         # refresh: tag=$(curl -fsSL https://api.github.com/repos/actions/checkout/releases/latest | sed -n 's/.*"tag_name": "\([^"]*\)".*/\1/p'); git ls-remote https://github.com/actions/checkout.git "refs/tags/${tag}" | awk '{print "uses: actions/checkout@" $1}'
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup Pages
         id: pages
@@ -92,7 +94,9 @@ jobs:
         run: hugo mod get -u
 
       - name: Build site
-        run: hugo --minify --gc --baseURL "${{ steps.pages.outputs.base_url }}"
+        env:
+          BASE_URL: ${{ steps.pages.outputs.base_url }}
+        run: hugo --minify --gc --baseURL "$BASE_URL"
 
       - name: Upload site artifact
         if: github.event_name != 'pull_request'
@@ -102,6 +106,7 @@ jobs:
           path: "public"
 
   deploy:
+    name: Deploy
     if: github.event_name != 'pull_request'
     environment:
       name: github-pages
@@ -109,8 +114,8 @@ jobs:
     runs-on: ubuntu-26.04
     needs: build
     permissions:
-      pages: write
-      id-token: write
+      pages: write # required to publish the Pages artifact
+      id-token: write # required for OIDC deployment to GitHub Pages
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
